@@ -1,0 +1,32 @@
+### Test Grading Endpoint
+POST http://localhost:5000/predict_grading
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="file"; filename="copra1.jpg"
+Content-Type: image/jpeg
+
+< ./Pictures/copra1.jpg
+------WebKitFormBoundary--
+
+### Test Mold Detection
+POST http://localhost:5000/predict_mold
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="file"; filename="copra1.jpg"
+Content-Type: image/jpeg
+
+< ./Pictures/copra1.jpg
+------WebKitFormBoundary--
+
+### Test TFLite Model
+POST http://localhost:5000/predict_tflite
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="file"; filename="copra1.jpg"
+Content-Type: image/jpeg
+
+< ./Pictures/copra1.jpg
+------WebKitFormBoundary--
