@@ -5,26 +5,71 @@ from tensorflow.keras.preprocessing import image
 from tensorflow.keras.applications.resnet50 import preprocess_input
 import os
 from flask_cors import CORS
+import gdown
 
 app = Flask(__name__)
 CORS(app)
 
-# Load the grading model
+# Model paths
 GRADING_MODEL_PATH = "models/grading/resnet50/copra_grading_identification_resnet50.h5"
-grading_model = tf.keras.models.load_model(GRADING_MODEL_PATH)
-grading_labels = ['Class1', 'Class2', 'Class3']  # Replace with actual class names
-
-# Load the mold detection model
 MOLD_MODEL_PATH = "models/mold/resnet50/copra_mold_identification_resnet50.h5"
-mold_model = tf.keras.models.load_model(MOLD_MODEL_PATH)
-mold_labels = ['Moldy', 'Healthy']  # Replace with actual class names
-
-# Load the TFLite model
 TFLITE_MODEL_PATH = "models/mold/resnet50/copra_mold_identification_resnet50_quant.tflite"
-interpreter = tf.lite.Interpreter(model_path=TFLITE_MODEL_PATH)
-interpreter.allocate_tensors()
-input_details = interpreter.get_input_details()
-output_details = interpreter.get_output_details()
+
+# Model labels
+grading_labels = ['Grade A', 'Grade B', 'Grade C', 'Grade D']
+mold_labels = ['Moldy', 'Not Moldy']
+
+def download_model(file_id, output_path):
+    """Download model from Google Drive if not exists"""
+    try:
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        if not os.path.exists(output_path):
+            url = f'https://drive.google.com/uc?id={file_id}'
+            return gdown.download(url, output_path, quiet=False)
+        return True
+    except Exception as e:
+        print(f"Error downloading model: {e}")
+        return False
+
+# Initialize models
+grading_model = None
+mold_model = None
+interpreter = None
+input_details = None
+output_details = None
+
+def initialize_models():
+    """Initialize models based on environment"""
+    global grading_model, mold_model, interpreter, input_details, output_details
+    
+    if os.environ.get('FLASK_ENV') == 'production':
+        print("Downloading models from Google Drive...")
+        models_downloaded = all([
+            download_model(os.environ.get('GRADING_MODEL_ID'), GRADING_MODEL_PATH),
+            download_model(os.environ.get('MOLD_MODEL_ID'), MOLD_MODEL_PATH),
+            download_model(os.environ.get('TFLITE_MODEL_ID'), TFLITE_MODEL_PATH)
+        ])
+        if not models_downloaded:
+            print("Failed to download models")
+            return False
+    
+    try:
+        print("Loading models...")
+        grading_model = tf.keras.models.load_model(GRADING_MODEL_PATH)
+        mold_model = tf.keras.models.load_model(MOLD_MODEL_PATH)
+        interpreter = tf.lite.Interpreter(model_path=TFLITE_MODEL_PATH)
+        interpreter.allocate_tensors()
+        input_details = interpreter.get_input_details()
+        output_details = interpreter.get_output_details()
+        print("Models loaded successfully")
+        return True
+    except Exception as e:
+        print(f"Error loading models: {e}")
+        return False
+
+# Initialize models on startup
+if not initialize_models():
+    print("Warning: Failed to initialize models")
 
 # Image preprocessing function
 def preprocess_image(img_path):
