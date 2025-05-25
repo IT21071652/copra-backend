@@ -9,7 +9,27 @@ import gdown
 from pyngrok import ngrok
 
 app = Flask(__name__)
-CORS(app)
+# Update CORS settings for React Native
+CORS(app, resources={
+    r"/*": {
+        "origins": "*",
+        "allow_headers": [
+            "Content-Type",
+            "Authorization",
+            "Access-Control-Allow-Credentials",
+            "Access-Control-Allow-Origin"
+        ],
+        "methods": ["GET", "POST", "OPTIONS"]
+    }
+})
+
+# Add response headers for all routes
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+    return response
 
 # Model paths
 GRADING_MODEL_PATH = "models/grading/resnet50/copra_grading_identification_resnet50.h5"
@@ -80,8 +100,11 @@ def preprocess_image(img_path):
     img_array = preprocess_input(img_array)
     return img_array
 
-@app.route('/predict_grading', methods=['POST'])
+@app.route('/predict_grading', methods=['POST', 'OPTIONS'])
 def predict_grading():
+    if request.method == 'OPTIONS':
+        return jsonify({"status": "OK"}), 200
+        
     if 'file' not in request.files:
         return jsonify({"error": "No file uploaded"}), 400
     
@@ -144,20 +167,31 @@ def predict_tflite():
     return jsonify({'class': predicted_class, 'confidence': confidence})
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    # Open a ngrok tunnel to the HTTP server
-    public_url = ngrok.connect(port).public_url
-    print("\n=== Ngrok Tunnel Configuration ===")
-    print(f"Local URL: http://127.0.0.1:{port}")
-    print(f"Public URL: {public_url}")
-    print("\nAvailable endpoints:")
-    print(f"POST {public_url}/predict_grading")
-    print(f"POST {public_url}/predict_mold")
-    print(f"POST {public_url}/predict_tflite")
-    print("================================\n")
+    try:
+        port = int(os.environ.get("PORT", 5000))
+        
+        # Configure ngrok
+        from pyngrok import conf
+        conf.get_default().region = 'us' # or 'eu', 'au', 'ap', 'sa', 'jp', 'in'
+        
+        # Create HTTP tunnel
+        tunnel = ngrok.connect(port, "http")
+        public_url = tunnel.public_url
+        
+        print("\n=== Ngrok Tunnel Configuration ===")
+        print(f"Local URL: http://127.0.0.1:{port}")
+        print(f"Public URL: {public_url}")
+        print("\nAPI Endpoints:")
+        print(f"POST {public_url}/predict_grading")
+        print(f"POST {public_url}/predict_mold")
+        print(f"POST {public_url}/predict_tflite")
+        print("================================\n")
 
-    # Update any base URLs or webhooks
-    app.config['BASE_URL'] = public_url
-
-    # Start the Flask server
-    app.run(host='0.0.0.0', port=port)
+        # Update Flask config
+        app.config['BASE_URL'] = public_url
+        
+        # Start Flask with appropriate host and port
+        app.run(host='0.0.0.0', port=port, debug=False)
+        
+    except Exception as e:
+        print(f"Error setting up ngrok: {e}")
