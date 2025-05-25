@@ -166,6 +166,47 @@ def predict_tflite():
 
     return jsonify({'class': predicted_class, 'confidence': confidence})
 
+@app.route('/', methods=['GET'])
+def home():
+    """Home route with API documentation"""
+    api_docs = {
+        "name": "Copra Backend API",
+        "version": "1.0",
+        "endpoints": {
+            "/predict_grading": {
+                "method": "POST",
+                "description": "Predict copra grade",
+                "requires": "image file in form-data with key 'file'"
+            },
+            "/predict_mold": {
+                "method": "POST",
+                "description": "Detect mold in copra",
+                "requires": "image file in form-data with key 'file'"
+            },
+            "/predict_tflite": {
+                "method": "POST",
+                "description": "TFLite model prediction",
+                "requires": "image file in form-data with key 'file'"
+            }
+        }
+    }
+    return jsonify(api_docs)
+
+# Add error handlers
+@app.errorhandler(404)
+def not_found(e):
+    return jsonify({
+        "error": "Route not found",
+        "message": "Please check the API documentation at the root URL (/)"
+    }), 404
+
+@app.errorhandler(500)
+def server_error(e):
+    return jsonify({
+        "error": "Internal server error",
+        "message": str(e)
+    }), 500
+
 if __name__ == '__main__':
     try:
         port = int(os.environ.get("PORT", 5000))
