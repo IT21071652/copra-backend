@@ -8,14 +8,14 @@ colorama==0.4.6
 Flask==3.0.2
 flask-cors==4.0.0
 flatbuffers==25.2.10
-gast==0.6.0
+gast==0.4.0
 google-pasta==0.2.0
 grpcio==1.71.0
 h5py==3.13.0
 idna==3.10
 itsdangerous==2.2.0
 Jinja2==3.1.6
-keras==3.9.0
+keras==2.13.1
 libclang==18.1.1
 Markdown==3.7
 markdown-it-py==3.0.0
