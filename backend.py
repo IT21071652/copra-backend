@@ -6,6 +6,7 @@ from tensorflow.keras.applications.resnet50 import preprocess_input
 import os
 from flask_cors import CORS
 import gdown
+from pyngrok import ngrok
 
 app = Flask(__name__)
 CORS(app)
@@ -144,4 +145,19 @@ def predict_tflite():
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    # Open a ngrok tunnel to the HTTP server
+    public_url = ngrok.connect(port).public_url
+    print("\n=== Ngrok Tunnel Configuration ===")
+    print(f"Local URL: http://127.0.0.1:{port}")
+    print(f"Public URL: {public_url}")
+    print("\nAvailable endpoints:")
+    print(f"POST {public_url}/predict_grading")
+    print(f"POST {public_url}/predict_mold")
+    print(f"POST {public_url}/predict_tflite")
+    print("================================\n")
+
+    # Update any base URLs or webhooks
+    app.config['BASE_URL'] = public_url
+
+    # Start the Flask server
+    app.run(host='0.0.0.0', port=port)
